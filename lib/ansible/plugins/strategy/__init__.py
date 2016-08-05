@@ -118,14 +118,18 @@ class StrategyBase:
         # outstanding tasks still in queue
         self._blocked_hosts     = dict()
 
-    def run(self, iterator, play_context, result=True):
+    def run(self, iterator, play_context, result=0):
         # save the failed/unreachable hosts, as the run_handlers()
         # method will clear that information during its execution
         failed_hosts      = iterator.get_failed_hosts()
         unreachable_hosts = self._tqm._unreachable_hosts.keys()
 
         display.debug("running handlers")
-        result &= self.run_handlers(iterator, play_context)
+        handler_result = self.run_handlers(iterator, play_context)
+        if isinstance(handler_result, int):
+            result |= handler_result
+        else:
+            result &= handler_result
 
         # now update with the hosts (if any) that failed or were
         # unreachable during the handler execution phase

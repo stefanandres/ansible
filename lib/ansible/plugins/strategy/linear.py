@@ -157,7 +157,7 @@ class StrategyModule(StrategyBase):
         '''
 
         # iteratate over each task, while there is one left to run
-        result     = True
+        result     = self._tqm.RUN_OK
         work_to_do = True
         while work_to_do and not self._tqm._terminated:
 
@@ -284,6 +284,7 @@ class StrategyModule(StrategyBase):
                         variable_manager=self._variable_manager
                     )
                 except AnsibleError as e:
+                    # this is a fatal error, so we abort here regardless of block state
                     return self._tqm.RUN_ERROR
 
                 include_failure = False
@@ -364,8 +365,9 @@ class StrategyModule(StrategyBase):
                         if host.name not in failed_hosts:
                             self._tqm._failed_hosts[host.name] = True
                             iterator.mark_host_failed(host)
+
                     self._tqm.send_callback('v2_playbook_on_no_hosts_remaining')
-                    return self._tqm.RUN_FAILED_BREAK_PLAY
+                    result |= self._tqm.RUN_FAILED_BREAK_PLAY
                 display.debug("done checking for any_errors_fatal")
 
                 display.debug("checking for max_fail_percentage")
@@ -380,7 +382,7 @@ class StrategyModule(StrategyBase):
                                 self._tqm._failed_hosts[host.name] = True
                                 iterator.mark_host_failed(host)
                         self._tqm.send_callback('v2_playbook_on_no_hosts_remaining')
-                        return self._tqm.RUN_FAILED_BREAK_PLAY
+                        result |= self._tqm.RUN_FAILED_BREAK_PLAY
                 display.debug("done checking for max_fail_percentage")
 
             except (IOError, EOFError) as e:
